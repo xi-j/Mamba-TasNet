@@ -4,6 +4,11 @@
 ### Under construction...
 
 
+
+## Architecture
+
+![architecture](figures/dpmamba.png)
+
 ## Citation
 ```bibtex
 @article{jiang2024dual,
