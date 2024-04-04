@@ -3,6 +3,7 @@
 
 ### Under construction...
 
+An official implementation of dual-path Mamba speech separation model.
 
 
 ## Architecture
