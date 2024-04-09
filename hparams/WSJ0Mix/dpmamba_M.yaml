@@ -25,7 +25,7 @@ base_folder_dm: /engram/naplab/projects/corpus/wsj0_processed
 
 project: Mamba-TasNet
 experiment: dpmamba_M
-output_folder: !ref results/<project>/<experiment>/<seed>
+output_folder: !ref results/WSJ0Mix/<experiment>/<seed>
 train_log: !ref <output_folder>/train_log.txt
 save_folder: !ref <output_folder>/save
 train_data: !ref <save_folder>/wsj_tr.csv
