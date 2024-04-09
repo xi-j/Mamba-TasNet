@@ -27,7 +27,7 @@ You can override other hyperparameters, e.g.
 --eval_only True \
 --use_wandb True
 ```
-We recommand training the L-sized models with fp32 if GPU memory permits.
+We recommend training the L-sized models with fp32 for better numerical stability if GPU memory permits. See a related [issue](https://github.com/state-spaces/mamba/issues/6).
 
 
 ## Inference
