@@ -15,13 +15,13 @@ eval_only: false
 
 # e.g. '/yourpath/wsj0-mix/2speakers'
 # end with 2speakers for wsj0-2mix or 3speakers for wsj0-3mix
-data_folder: null
+data_folder: /engram/naplab/projects/corpus/wsj0mix/2speakers
 
 # the path for wsj0/si_tr_s/ folder -- only needed if dynamic mixing is used
 # e.g. /yourpath/wsj0-processed/si_tr_s/
 # you need to convert the original wsj0 to 8k
 # you can do this conversion with the script ../meta/preprocess_dynamic_mixing.py
-base_folder_dm: null
+base_folder_dm: /engram/naplab/projects/corpus/wsj0_processed
 
 project: Mamba-TasNet
 experiment: spmamba_XS
@@ -160,6 +160,7 @@ Decoder: !new:speechbrain.lobes.models.dual_path.Decoder
 optimizer: !name:torch.optim.Adam
     lr: !ref <lr>
     weight_decay: !ref <weight_decay>
+
 
 loss: !name:speechbrain.nnet.losses.get_si_snr_with_pitwrapper
 
