@@ -15,6 +15,8 @@ arxiv: https://arxiv.org/abs/2403.18257
 See inference.ipynb. Model checkpoints are provided in the results folder.
 
 ## Performance
+We slightly improved the performance from the paper. DPMamba (L) was trained for 200 instead of 150 epochs.
+<img src="figures/performance.png" alt="performance" width="60%">
 
 ## Acknowledgement
 
