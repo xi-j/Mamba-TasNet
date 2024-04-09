@@ -3,6 +3,12 @@
 
 ### Under construction...
 
+An official implementation of dual-path Mamba speech separation model.
+
+
+## Architecture
+
+![architecture](figures/dpmamba.png)
 
 ## Citation
 ```bibtex
