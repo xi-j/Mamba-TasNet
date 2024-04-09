@@ -4,11 +4,15 @@ An official implementation of dual-path Mamba speech separation model.
 
 arxiv: https://arxiv.org/abs/2403.18257
 
-We are developing single-path Mamba speech separation models and training on WHAM! and WHAMR!. Please stay tuned!
+We are developing single-path Mamba speech separation models and training on WHAM! and WHAMR!. 
+
+Please stay tuned!
 
 ## Architecture
 
 ![architecture](figures/dpmamba.png)
+
+## Prerequisites
 
 ## Training
 
