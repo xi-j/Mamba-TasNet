@@ -4,17 +4,39 @@ An official implementation of dual-path Mamba speech separation model.
 
 arxiv: https://arxiv.org/abs/2403.18257
 
+We are developing single-path Mamba speech separation models and training on WHAM! and WHAMR!. 
+
+Please stay tuned!
+
 ## Architecture
 
 ![architecture](figures/dpmamba.png)
 
-## Training 
+## Prerequisites
+
+## Training
+
+```
+python train_wsj0mix.py hparams/WSJ0Mix/{dpmamba, spmamba}_{XS, S, M, L}.yaml \
+--data_folder </yourpath/wsj0-mix/2speakers> \
+--base_folder_dm </yourpath/wsj0_processed>
+```
+You can override other hyperparameters, e.g.
+```
+--precision bf16 \
+--eval_only True \
+--use_wandb True
+```
+We recommend training the L-sized models with fp32 for better numerical stability if GPU memory permits. See a related [issue](https://github.com/state-spaces/mamba/issues/6).
+
 
 ## Inference
 
-See inference.ipynb. Model checkpoints are provided in the results folder.
+See inference.ipynb. Model checkpoints are provided in the results folder (soon).
 
 ## Performance
+We slightly improved the performance from the paper. DPMamba (L) was trained for 200 instead of 150 epochs.
+<img src="figures/performance.png" alt="performance" width="60%">
 
 ## Acknowledgement
 
