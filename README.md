@@ -35,7 +35,6 @@ We recommend training the L-sized models with fp32 for better numerical stabilit
 See inference.ipynb. Model checkpoints are provided in the results folder (soon).
 
 ## Performance
-We slightly improved the performance from the paper. DPMamba (L) was trained for 200 instead of 150 epochs.
 <img src="figures/performance.png" alt="performance" width="60%">
 
 ## Acknowledgement
