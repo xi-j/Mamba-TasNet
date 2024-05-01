@@ -21,7 +21,7 @@ Please stay tuned.
 ```
 python train_wsj0mix.py hparams/WSJ0Mix/{dpmamba, spmamba}_{XS, S, M, L}.yaml \
 --data_folder </yourpath/wsj0-mix/2speakers> \
---base_folder_dm </yourpath/wsj0_processed>
+--base_folder_dm </yourpath/wsj0_processed/si_tr_s>
 ```
 You can override other hyperparameters, e.g.
 ```
