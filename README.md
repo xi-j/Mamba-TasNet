@@ -1,12 +1,14 @@
 # Mamba-TasNet
 
+### Under Construction...
+
 An official implementation of dual-path Mamba speech separation model.
 
 arxiv: https://arxiv.org/abs/2403.18257
 
 We are developing single-path Mamba speech separation models and training on WHAM! and WHAMR!. 
 
-Please stay tuned!
+Please stay tuned.
 
 ## Architecture
 
@@ -35,7 +37,6 @@ We recommend training the L-sized models with fp32 for better numerical stabilit
 See inference.ipynb. Model checkpoints are provided in the results folder (soon).
 
 ## Performance
-We slightly improved the performance from the paper. DPMamba (L) was trained for 200 instead of 150 epochs.
 <img src="figures/performance.png" alt="performance" width="60%">
 
 ## Acknowledgement
