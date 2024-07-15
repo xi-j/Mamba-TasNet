@@ -16,7 +16,7 @@ eval_only: false
 
 # e.g. '/yourpath/wsj0-mix/2speakers'
 # end with 2speakers for wsj0-2mix or 3speakers for wsj0-3mix
-data_folder: null
+data_folder: !PLACEHOLDER
 
 # the path for wsj0/si_tr_s/ folder -- only needed if dynamic mixing is used
 # e.g. /yourpath/wsj0-processed/si_tr_s/
@@ -26,7 +26,7 @@ base_folder_dm: null
 
 project: Mamba-TasNet
 experiment: sepformer
-output_folder: !ref results/<project>/<experiment>/<seed>
+output_folder: !ref results/WSJ0Mix/<experiment>/<seed>
 train_log: !ref <output_folder>/train_log.txt
 save_folder: !ref <output_folder>/save
 train_data: !ref <save_folder>/wsj_tr.csv

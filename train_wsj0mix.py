@@ -51,7 +51,18 @@ pp = pprint.PrettyPrinter(indent=4)
 
 from speechbrain.utils.logger import format_order_of_magnitude
 
-# torch.autograd.set_detect_anomaly(True)
+os.environ['WANDB__SERVICE_WAIT'] = '999999'
+
+def check_mean_max_grad(parameters):
+
+    # Calculate gradient norm (L2 norm as an example)
+    grad_norm = torch.sqrt(sum(p.grad.data.norm(2) ** 2 for p in parameters if p.grad is not None))
+
+    # Calculate maximum gradient
+    grad_max = max(p.grad.data.abs().max() for p in parameters if p.grad is not None)
+
+    return grad_norm, grad_max
+
 
 # Define training procedure
 class Separation(sb.Brain):
@@ -95,7 +106,7 @@ class Separation(sb.Brain):
         if T_origin > T_est:
             est_source = F.pad(est_source, (0, 0, 0, T_origin - T_est))
         else:
-            est_source = est_source[:, :T_origin, :]
+            est_source = est_source[:, :T_origin, :] # (B, T, S)
 
         return est_source
 
@@ -153,7 +164,13 @@ class Separation(sb.Brain):
                 ):
                     mix, targets = self.train_augment(mix, targets, mix_lens)
                     predictions = self.compute_forward(mix, sb.Stage.TRAIN)
-                    # print('Output: ', predictions.max())
+
+                    if hasattr(self.hparams, 'clip_wav_max'):
+                        predictions = torch.clamp(predictions, 
+                            min=-self.hparams.clip_wav_max, 
+                            max=self.hparams.clip_wav_max
+                        )
+
                     loss = self.compute_objectives(predictions, targets, mix)
 
                     # hard threshold the easy dataitems
@@ -179,7 +196,41 @@ class Separation(sb.Brain):
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
 
-                    # calculate_gradient_norm(self.modules)
+                    '''
+                    grad_norm, grad_max = check_mean_max_grad(
+                        self.optimizer.param_groups[0]['params']
+                    )
+                    est_max = (
+                        torch.max(predictions[..., 0]) \
+                        + torch.max(predictions[..., 1])
+                    )/2
+                    est_norm = (
+                        torch.norm(predictions[..., 0], p=2) \
+                        + torch.norm(predictions[..., 1], p=2)
+                    )/2
+                    tar_max = (
+                        torch.max(targets[..., 0]) \
+                        + torch.max(targets[..., 1])
+                    )/2
+                    tar_norm = (
+                        torch.norm(targets[..., 0], p=2) \
+                        + torch.norm(targets[..., 1], p=2)
+                    )/2
+
+                    self.hparams.train_logger.run.log(
+                        data={
+                            'train.grad_norm': float(grad_norm),
+                            'train.grad_max': float(grad_max),
+                            'train.step_loss': float(loss),
+                            'train.est_max': float(est_max),
+                            'train.est_norm': float(est_norm),
+                            'train.est2tar_max': float(est_max/tar_max+1e-8),
+                            'train.est2tar_norm': float(est_norm/tar_norm+1e-8),
+                        },
+                        step=self.global_fit_step
+                    )
+                    '''
+
 
                 else:
                     self.nonfinite_count += 1
@@ -297,7 +348,7 @@ class Separation(sb.Brain):
             )
             print(f'Linear warmup for {str(self.hparams.n_warmup_step)} steps.')
 
-        if self.hparams.use_cosine_schedule: # override lr scheduler
+        if hasattr(self.hparams, "use_cosine_schedule") and self.hparams.use_cosine_schedule: # override lr scheduler
             self.hparams.lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
                 optimizer=self.optimizer,
                 T_max=n_step_per_epoch*self.hparams.N_epochs-self.hparams.n_warmup_step, 
@@ -310,8 +361,7 @@ class Separation(sb.Brain):
             self.optimizer._step_count = cur_step
 
         else:
-            raise ValueError('ReduceLROnPlateau scheduler is not called.')
-            print('Use ReduceLROnPlateau scheduler.')
+            print(self.hparams.lr_scheduler)
 
     def on_stage_start(self, stage, epoch=None):
         self.loss_stat = {
@@ -336,7 +386,7 @@ class Separation(sb.Brain):
         # Perform end-of-iteration things, like annealing, logging, etc.
         if stage == sb.Stage.VALID:
 
-            # Learning rate annealing
+            # ReduceLROnPlateau
             if isinstance(
                 self.hparams.lr_scheduler, schedulers.ReduceLROnPlateau
             ):
@@ -344,8 +394,16 @@ class Separation(sb.Brain):
                     [self.optimizer], epoch, stage_loss
                 )
                 schedulers.update_learning_rate(self.optimizer, next_lr)
+
+            # IntervalScheduler
+            elif isinstance(
+                self.hparams.lr_scheduler, schedulers.IntervalScheduler
+            ):
+                current_lr, next_lr = self.hparams.lr_scheduler(self.optimizer)
+                print(self.optimizer.param_groups[0]["lr"])
+
             else:
-                # if we do not use the reducelronplateau, we do not change the lr
+                # no change
                 current_lr = self.optimizer.param_groups[0]["lr"]
 
             self.hparams.train_logger.log_stats(
@@ -678,7 +736,7 @@ if __name__ == "__main__":
         )
 
     # Data preparation
-    from sb_recipes.WSJ0Mix.prepare_data import prepare_wsjmix  # noqa
+    from utils.prepare_data import prepare_wsjmix  # noqa
 
     run_on_main(
         prepare_wsjmix,
@@ -693,7 +751,7 @@ if __name__ == "__main__":
 
     # Create dataset objects
     if hparams["dynamic_mixing"]:
-        from sb_recipes.WSJ0Mix.dynamic_mixing import dynamic_mix_data_prep
+        from utils.dynamic_mixing import dynamic_mix_data_prep
 
         # if the base_folder for dm is not processed, preprocess them
         if "processed" not in hparams["base_folder_dm"]:
@@ -701,7 +759,7 @@ if __name__ == "__main__":
             if not os.path.exists(
                 os.path.normpath(hparams["base_folder_dm"]) + "_processed"
             ):
-                from sb_recipes.WSJ0Mix.meta.preprocess_dynamic_mixing import resample_folder
+                from utils.preprocess_dynamic_mixing import resample_folder
 
                 print("Resampling the base folder")
                 run_on_main(

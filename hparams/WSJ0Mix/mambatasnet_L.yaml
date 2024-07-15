@@ -1,8 +1,8 @@
 # ################################
-# Model: SepFormer for source separation
-# https://arxiv.org/abs/2010.13154
+# Model: Single-path SSM for source separation
 # Dataset : WSJ0-2mix and WSJ0-3mix
 # ################################
+#
 # Basic parameters
 # Seed needs to be set at top of yaml, before objects with parameters are made
 #
@@ -15,15 +15,17 @@ eval_only: False
 
 # e.g. '/yourpath/wsj0-mix/2speakers'
 # end with 2speakers for wsj0-2mix or 3speakers for wsj0-3mix
-data_folder: null
+data_folder: !PLACEHOLDER
 
 # the path for wsj0/si_tr_s/ folder -- only needed if dynamic mixing is used
 # e.g. /yourpath/wsj0-processed/si_tr_s/
+# you need to convert the original wsj0 to 8k
+# you can do this conversion with the script ../meta/preprocess_dynamic_mixing.py
 base_folder_dm: null
 
 project: Mamba-TasNet
-experiment: dprnn
-output_folder: !ref results/<project>/<experiment>/<seed>
+experiment: mambatasnet_L
+output_folder: !ref results/WSJ0Mix/<experiment>/<seed>
 train_log: !ref <output_folder>/train_log.txt
 save_folder: !ref <output_folder>/save
 train_data: !ref <save_folder>/wsj_tr.csv
@@ -33,17 +35,20 @@ skip_prep: False
 
 
 # Experiment params
-precision: fp32 # bf16, fp16 or fp32
+precision: bf16 # bf16, fp16 or fp32 # Set it to True for mixed precision
 num_spks: 2 # set to 3 for wsj0-3mix
 noprogressbar: False
-save_audio: False # Save estimated sources on disk
+save_audio: True # Save estimated sources on disk
+n_audio_to_save: 20
 sample_rate: 8000
 
 # Training parameters
 N_epochs: 200
 batch_size: 1
-lr: 0.00015
+lr: 1.0e-4
+weight_decay: 0
 clip_grad_norm: 5
+clip_wav_max: 999999
 loss_upper_lim: 999999  # this is the upper limit for an acceptable loss
 # if True, the training sequences are cut to a specified length
 limit_training_signal_len: False
@@ -51,8 +56,10 @@ limit_training_signal_len: False
 # the signal length of training sequences
 training_signal_len: 32000000
 
+n_warmup_step: 20000
+
 # Set it to True to dynamically create mixtures at training time
-dynamic_mixing: False
+dynamic_mixing: True
 
 # Parameters for data augmentation
 use_wavedrop: False
@@ -96,50 +103,51 @@ drop_chunk: !new:speechbrain.augment.time_domain.DropChunk
 
 # loss thresholding -- this thresholds the training loss
 threshold_byloss: True
-threshold: -30
+threshold: -40
 
 # Encoder parameters
-N_encoder_out: 64 # 256
-out_channels: 128 # 256
-kernel_size: 2
-kernel_stride: 1
+N_encoder_out: 512
+out_channels: 512
+kernel_size: 16
+kernel_stride: !ref <kernel_size> // 2
+
+# Mamba parameters
+bidirectional: True
+n_mamba: 32
+ssm_dim: 16
+mamba_expand: 2
+mamba_conv: 4
 
 # Dataloader options
 dataloader_opts:
     batch_size: !ref <batch_size>
-    num_workers: 3
+    num_workers: 16
+    drop_last: True
+
+fused_add_norm: False
+rms_norm: True
+residual_in_fp32: False
 
 # Specifying the network
 Encoder: !new:speechbrain.lobes.models.dual_path.Encoder
     kernel_size: !ref <kernel_size>
     out_channels: !ref <N_encoder_out>
 
-intra: !new:speechbrain.lobes.models.dual_path.SBRNNBlock
-    num_layers: 1
-    input_size: !ref <N_encoder_out>
-    hidden_channels: !ref <out_channels>
-    dropout: 0
-    bidirectional: True
+MaskNet: !new:modules.mamba_masknet.MaskNet
+    enc_dim: !ref <N_encoder_out>
+    bot_dim: !ref <out_channels>
+    n_spk: !ref <num_spks>
+    n_mamba: !ref <n_mamba>
+    bidirectional: !ref <bidirectional>
+    d_model: !ref <out_channels>
+    d_state: !ref <ssm_dim>
+    expand: !ref <mamba_expand>
+    d_conv: !ref <mamba_conv>
+    fused_add_norm: !ref <fused_add_norm>
+    rms_norm: !ref <rms_norm>
+    residual_in_fp32: !ref <residual_in_fp32>
 
-inter: !new:speechbrain.lobes.models.dual_path.SBRNNBlock
-    num_layers: 1
-    input_size: !ref <N_encoder_out>
-    hidden_channels: !ref <out_channels>
-    dropout: 0
-    bidirectional: True
-
-MaskNet: !new:speechbrain.lobes.models.dual_path.Dual_Path_Model
-    num_spks: !ref <num_spks>
-    in_channels: !ref <N_encoder_out>
-    out_channels: !ref <N_encoder_out>
-    num_layers: 6
-    K: 250
-    intra_model: !ref <intra>
-    inter_model: !ref <inter>
-    norm: ln
-    linear_layer_after_inter_intra: True
-    skip_around_intra: False
-
+    
 Decoder: !new:speechbrain.lobes.models.dual_path.Decoder
     in_channels: !ref <N_encoder_out>
     out_channels: 1
@@ -149,14 +157,25 @@ Decoder: !new:speechbrain.lobes.models.dual_path.Decoder
 
 optimizer: !name:torch.optim.Adam
     lr: !ref <lr>
-    weight_decay: 0
+    weight_decay: !ref <weight_decay>
 
 loss: !name:speechbrain.nnet.losses.get_si_snr_with_pitwrapper
 
-lr_scheduler: !new:speechbrain.nnet.schedulers.ReduceLROnPlateau
-    factor: 0.5
-    patience: 2
-    dont_halve_until_epoch: 85
+use_cosine_schedule: True
+percent_lr: 0.01
+
+# lr_scheduler: !new:speechbrain.nnet.schedulers.ReduceLROnPlateau
+#     factor: 0.5
+#     patience: 2
+#     dont_halve_until_epoch: 30
+
+lr_scheduler: !new:speechbrain.nnet.schedulers.IntervalScheduler
+    intervals: [
+        {"steps": 40, "lr": !ref <lr> / 2},
+        {"steps": 80, "lr": !ref <lr> / 4},
+        {"steps": 120, "lr": !ref <lr> / 8},
+        {"steps": 160, "lr": !ref <lr> / 16}
+    ]
 
 epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
     limit: !ref <N_epochs>
@@ -175,7 +194,10 @@ checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
         counter: !ref <epoch_counter>
         lr_scheduler: !ref <lr_scheduler>
 
-use_wandb: true
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+use_wandb: False
 resume: False
 wandb_logger: !name:speechbrain.utils.train_logger.WandBLogger
     initializer: !name:wandb.init
@@ -185,4 +207,3 @@ wandb_logger: !name:speechbrain.utils.train_logger.WandBLogger
     dir: !ref <save_folder>
     reinit: true
     resume: !ref <resume>
-

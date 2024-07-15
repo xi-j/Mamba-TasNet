@@ -624,10 +624,20 @@ def bimamba_inner_fn(
     A, A_b, B=None, C=None, D=None, delta_bias=None, B_proj_bias=None,
     C_proj_bias=None, delta_softplus=True
 ):
+
     return BiMambaInnerFn.apply(xz, conv1d_weight, conv1d_bias, x_proj_weight, delta_proj_weight,
                               out_proj_weight, out_proj_bias,
                               A, A_b, B, C, D, delta_bias, B_proj_bias, C_proj_bias, delta_softplus)
 
+def maskedmamba_inner_fn(
+    xz, conv1d_weight, conv1d_bias, x_proj_weight, delta_proj_weight,
+    out_proj_weight, out_proj_bias,
+    A, A_b, B=None, C=None, D=None, delta_bias=None, B_proj_bias=None,
+    C_proj_bias=None, delta_softplus=True
+):
+    return BiMambaInnerFn.apply(xz, conv1d_weight, conv1d_bias, x_proj_weight, delta_proj_weight,
+                              out_proj_weight, out_proj_bias,
+                              A, A_b, B, C, D, delta_bias, B_proj_bias, C_proj_bias, delta_softplus)
 
 def mamba_inner_fn_no_out_proj(
     xz, conv1d_weight, conv1d_bias, x_proj_weight, delta_proj_weight,

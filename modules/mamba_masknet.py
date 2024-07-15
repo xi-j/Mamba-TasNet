@@ -6,9 +6,8 @@ import torch.nn.functional as F
 from speechbrain.lobes.models.conv_tasnet import ChannelwiseLayerNorm
 
 from mamba_ssm import Mamba
-from modules.bimamba import Mamba as BiMamba
-
-from .mamba_blocks import MambaBlocksSequential
+from modules.mamba.bimamba import Mamba as BiMamba
+from modules.mamba_blocks import MambaBlocksSequential
 
 
 class MaskNet(nn.Module):
@@ -60,7 +59,6 @@ class MaskNet(nn.Module):
         d_conv=4,
         fused_add_norm=False,
         rms_norm=True,
-        use_simple_block=False,
         residual_in_fp32=False,
 
     ):
@@ -90,7 +88,6 @@ class MaskNet(nn.Module):
             d_conv=d_conv,
             fused_add_norm=fused_add_norm,
             rms_norm=rms_norm,
-            use_simple_block=use_simple_block,
             residual_in_fp32=residual_in_fp32,
             conv_bias=True,
             bias=False
@@ -114,10 +111,13 @@ class MaskNet(nn.Module):
         est_mask : Tensor
             Tensor shape is [M, K, C, N].
         """
- 
+        # nan_ratio = torch.isnan(mixture_w).float().sum() / mixture_w.numel()
+        # print(f'Encoder nan: {str(nan_ratio)}')
         mixture_w = mixture_w.permute(0, 2, 1)
         B, L, D = mixture_w.size()
         y = self.layer_norm(mixture_w)
+        # nan_ratio = torch.isnan(y).float().sum() / y.numel()
+        # print(f'Encoder LN nan: {str(nan_ratio)}')
         y = self.bottleneck_conv1x1(y)
         y = self.mamba_net(y)
         score = self.mask_conv1x1(y)

@@ -10,8 +10,8 @@ import torch.nn as nn
 from functools import partial
 
 from mamba_ssm import Mamba
-from modules.bimamba import Mamba as BiMamba 
-from modules.bimamba import Block as PreNormBlock
+from modules.mamba.bimamba import Mamba as BiMamba 
+from modules.mamba.bimamba import Block as PreNormBlock
 
 try:
     from mamba_ssm.ops.triton.layernorm import RMSNorm, layer_norm_fn, rms_norm_fn
@@ -33,6 +33,7 @@ def create_block(
 ):
     if ssm_cfg is None:
         ssm_cfg = {}
+
     factory_kwargs = {"device": device, "dtype": dtype}
     mixer_cls = partial(ssm_cls, layer_idx=layer_idx, **ssm_cfg, **factory_kwargs)
     norm_cls = partial(
@@ -45,6 +46,7 @@ def create_block(
         fused_add_norm=fused_add_norm,
         residual_in_fp32=residual_in_fp32,
     )
+
     block.layer_idx = layer_idx
     return block
 
@@ -82,32 +84,6 @@ def _init_weights(
                     p /= math.sqrt(n_residuals_per_layer * n_layer)
 
 
-class LnMambaAdd(nn.Module):
-
-    def __init__(self, 
-        d_model, 
-        ssm_cls, 
-        ssm_cfg,
-        rms_norm=False,
-        layer_idx=None
-    ):
-        super().__init__()
-        if rms_norm:
-            self.norm = RMSNorm(d_model)
-        else:
-            self.norm = nn.LayerNorm(d_model)
-        self.mamba = ssm_cls(d_model=d_model, **ssm_cfg)
-
-        print(type(self.mamba))
-
-        print('Created LnMambaAdd.')
-
-    def forward(self, x, residual=None, inference_params=None):
-        if residual != None:
-            x = x + residual
-        return self.mamba(self.norm(x)), x
-
-
 class MambaBlocksSequential(nn.Module):
     """
     A wrapper for the Mamba block to replicate it
@@ -131,8 +107,8 @@ class MambaBlocksSequential(nn.Module):
 
     def __init__(self, 
         n_mamba: int,
-        bidirectional: bool,
-        d_model: int, # bottleneck dimension (B)
+        bidirectional: bool = False,
+        d_model: int = 256, # bottleneck dimension (B)
         d_state: int = 16,
         expand: int = 2,
         d_conv: int = 4, # kernel_size of 'Conv' in Mamba
@@ -144,11 +120,12 @@ class MambaBlocksSequential(nn.Module):
         norm_epsilon: float = 1e-5,
         initializer_cfg=None,
         residual_in_fp32=False,
-        use_simple_block=False
     ):
         super().__init__()
         self.residual_in_fp32 = residual_in_fp32
         self.bidirectional = bidirectional
+
+        ssm_cls = BiMamba if bidirectional else Mamba
 
         # We change the order of residual and layer norm:
         # Instead of LN -> Attn / MLP -> Add, we do:
@@ -159,8 +136,6 @@ class MambaBlocksSequential(nn.Module):
         if self.fused_add_norm:
             if layer_norm_fn is None or rms_norm_fn is None:
                 raise ImportError("Failed to import Triton LayerNorm / RMSNorm kernels")
-
-        self.use_simple_block = use_simple_block
 
         ssm_cfg = {
             "d_state": d_state,
@@ -173,35 +148,21 @@ class MambaBlocksSequential(nn.Module):
         if bidirectional:
             ssm_cfg["bimamba_type"] = "v2"
 
-        if use_simple_block:
-            self.layers = nn.Sequential(
-                *[
-                    LnMambaAdd(
-                        d_model=d_model,
-                        ssm_cls=BiMamba if bidirectional else Mamba,
-                        ssm_cfg=ssm_cfg,
-                        rms_norm=rms_norm,
-                        layer_idx=i
-                    )
-                    for i in range(n_mamba)
-                ]
-            )
-        else:
-            self.layers = nn.Sequential(
-                *[
-                    create_block(
-                        d_model=d_model,
-                        ssm_cls=BiMamba if bidirectional else Mamba,
-                        ssm_cfg=ssm_cfg,
-                        norm_epsilon=norm_epsilon,
-                        rms_norm=rms_norm,
-                        residual_in_fp32=residual_in_fp32,
-                        fused_add_norm=fused_add_norm,
-                        layer_idx=i,
-                    )
-                    for i in range(n_mamba)
-                ]
-            )
+        self.layers = nn.Sequential(
+            *[
+                create_block(
+                    d_model=d_model,
+                    ssm_cls=ssm_cls,
+                    ssm_cfg=ssm_cfg,
+                    norm_epsilon=norm_epsilon,
+                    rms_norm=rms_norm,
+                    residual_in_fp32=residual_in_fp32,
+                    fused_add_norm=fused_add_norm,
+                    layer_idx=i,
+                )
+                for i in range(n_mamba)
+            ]
+        )
 
         self.norm_f = (nn.LayerNorm if not rms_norm else RMSNorm)(
             d_model, eps=norm_epsilon
@@ -222,7 +183,7 @@ class MambaBlocksSequential(nn.Module):
             for i, layer in enumerate(self.layers)
         }
     
-    def forward(self, x, inference_params=None):
+    def forward(self, x, keep_to=None, inference_params=None):
 
         hidden_states = x
         residual = None
@@ -230,7 +191,7 @@ class MambaBlocksSequential(nn.Module):
             hidden_states, residual = layer(
                 hidden_states, residual, inference_params=inference_params
             )
-            
+
         if not self.fused_add_norm:
             residual = (hidden_states + residual) if residual is not None else hidden_states
             hidden_states = self.norm_f(residual.to(dtype=self.norm_f.weight.dtype))
