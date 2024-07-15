@@ -1,40 +1,34 @@
-# Mamba-TasNet
+# Mamba-TasNet and Dual-Path Mamba
 
-### Under Construction...
+An official implementation of Mamba-TasNet [![arXiv](https://img.shields.io/badge/arXiv-<INDEX>-<COLOR>.svg)](https://arxiv.org/abs/<INDEX>) and dual-path Mamba [![arXiv](https://img.shields.io/badge/arXiv-2403.18257-<COLOR>.svg)](https://arxiv.org/abs/2403.18257) for speech separation.
 
-An official implementation of dual-path Mamba speech separation model.
+## Architectures
 
-arxiv: https://arxiv.org/abs/2403.18257
-
-We are developing single-path Mamba speech separation models and training on WHAM! and WHAMR!. 
-
-Please stay tuned.
-
-## Architecture
-
-![architecture](figures/dpmamba.png)
+<img src="figures/mambatasnet.png" alt="mambatasnet" width="800"/>
+<img src="figures/dpmamba.png" alt="dpmamba" width="1000"/>
 
 ## Prerequisites
+
+```
+conda create --name Slytherin python=3.9
+conda activate Slytherin
+pip install -r requirements.txt
+```
+You may need to install lower or higher versions of torch, torchaudio, causal-conv1d and mamba-ssm based on your hardware and system. Make sure they are compatible. 
 
 ## Training
 
 ```
-python train_wsj0mix.py hparams/WSJ0Mix/{dpmamba, spmamba}_{XS, S, M, L}.yaml \
+python train_wsj0mix.py hparams/WSJ0Mix/{mambatasnet, dpmamba}_{XS, S, M, L}.yaml \
 --data_folder </yourpath/wsj0-mix/2speakers> \
---base_folder_dm </yourpath/wsj0_processed/si_tr_s>
+--dynamic_mixing True \
+--base_folder_dm </yourpath/wsj0_processed/si_tr_s> \
+--precision bf16
 ```
-You can override other hyperparameters, e.g.
-```
---precision bf16 \
---eval_only True \
---use_wandb True
-```
-We recommend training the L-sized models with fp32 for better numerical stability if GPU memory permits. See a related [issue](https://github.com/state-spaces/mamba/issues/6).
 
+You might encounter numerical instablity in training L-sized model. We recommend training with fp32 if GPU memory permits.
 
-## Inference
-
-See inference.ipynb. Model checkpoints are provided in the results folder (soon).
+Please check a related [issue](https://github.com/state-spaces/mamba/issues/6) and Section 6.4 in the Jamba [paper](https://arxiv.org/abs/2403.19887) on stabilizing loss.
 
 ## Performance
 <img src="figures/performance.png" alt="performance" width="60%">
@@ -44,7 +38,7 @@ See inference.ipynb. Model checkpoints are provided in the results folder (soon)
 We acknowledge the wonderful work of [Mamba](https://arxiv.org/abs/2312.00752) and [Vision Mamba](https://arxiv.org/abs/2401.09417). We borrowed their implementation of [Mamba](https://github.com/state-spaces/mamba) and [bidirectional Mamba](https://github.com/hustvl/Vim). The training recipes are adapted from [SpeechBrain](https://speechbrain.github.io).
 
 ## Citation
-If you find this work useful, consider citing
+If you find this work helpful, please consider citing:
 ```bibtex
 @article{jiang2024dual,
   title={Dual-path Mamba: Short and Long-term Bidirectional Selective Structured State Space Models for Speech Separation},
@@ -53,3 +47,5 @@ If you find this work useful, consider citing
   year={2024}
 }
 ```
+
+You may also like our Mamba for speech recognition : https://github.com/xi-j/Mamba-ASR
