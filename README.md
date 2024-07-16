@@ -31,11 +31,14 @@ python train_wsj0mix.py hparams/WSJ0Mix/{mambatasnet, dpmamba}_{XS, S, M, L}.yam
 --precision bf16
 ```
 
-You might encounter numerical instablity in training L-sized model. We recommend training with fp32 if GPU memory permits.
+You might encounter numerical instablity in training L-sized model. 
+
+We recommend training with fp32 if GPU memory permits.
 
 Please check a related [issue](https://github.com/state-spaces/mamba/issues/6) and Section 6.4 in the Jamba [paper](https://arxiv.org/abs/2403.19887) on stabilizing loss.
 
 ## Performance
+
 <img src="figures/performance.png" alt="performance" width="60%">
 
 ## Acknowledgement
@@ -43,6 +46,7 @@ Please check a related [issue](https://github.com/state-spaces/mamba/issues/6) a
 We acknowledge the wonderful work of [Mamba](https://arxiv.org/abs/2312.00752) and [Vision Mamba](https://arxiv.org/abs/2401.09417). We borrowed their implementation of [Mamba](https://github.com/state-spaces/mamba) and [bidirectional Mamba](https://github.com/hustvl/Vim). The training recipes are adapted from [SpeechBrain](https://speechbrain.github.io).
 
 ## Citation
+
 If you find this work helpful, please consider citing:
 ```bibtex
 @article{jiang2024dual,
