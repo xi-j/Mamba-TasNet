@@ -35,6 +35,8 @@ We recommend training with fp32 if GPU memory permits.
 
 Please check a related [issue](https://github.com/state-spaces/mamba/issues/6) and Section 6.4 in the Jamba [paper](https://arxiv.org/abs/2403.19887) on stabilizing loss.
 
+## Inference and Checkpoints (Later)
+
 ## Performance
 
 <img src="figures/performance.png" alt="performance" width="60%">
