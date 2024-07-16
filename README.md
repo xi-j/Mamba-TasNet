@@ -1,8 +1,6 @@
-# Mamba-TasNet and Dual-Path Mamba
+# Mamba-TasNet [![arXiv](https://img.shields.io/badge/arXiv-2407.09732-<COLOR>.svg)](https://arxiv.org/abs/2407.09732) and Dual-Path Mamba [![arXiv](https://img.shields.io/badge/arXiv-2403.18257-<COLOR>.svg)](https://arxiv.org/abs/2403.18257) 
 
-An official implementation of Mamba-TasNet [![arXiv](https://img.shields.io/badge/arXiv-2407.09732-<COLOR>.svg)](https://arxiv.org/abs/2407.09732) and dual-path Mamba [![arXiv](https://img.shields.io/badge/arXiv-2403.18257-<COLOR>.svg)](https://arxiv.org/abs/2403.18257) 
-
-for speech separation.
+An official implementation of Mamba-TasNet and dual-path Mamba for speech separation.
 
 ## Architectures
 
