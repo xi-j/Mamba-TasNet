@@ -9,7 +9,7 @@ An official implementation of Mamba-TasNet [![arXiv](https://img.shields.io/badg
 
 ## Prerequisites
 
-1. Download WSJ0 [corpus](https://catalog.ldc.upenn.edu/LDC93S6A) and follow example [instruction](https://github.com/speechbrain/speechbrain/blob/develop/recipes/WSJ0Mix/separation/README.md) to create WSJ0-2Mix.
+1. Download WSJ0 [corpus](https://catalog.ldc.upenn.edu/LDC93S6A) and follow an example [instruction](https://github.com/speechbrain/speechbrain/blob/develop/recipes/WSJ0Mix/separation/README.md) to create WSJ0-2Mix.
 
 2. Install Packages.
 ```
