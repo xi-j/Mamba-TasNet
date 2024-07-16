@@ -60,7 +60,7 @@ If you find this work helpful, please consider citing:
 ```
 
 ```bibtex
-@article{jiang2024dual,
+@misc{jiang2024dual,
   title={Dual-path Mamba: Short and Long-term Bidirectional Selective Structured State Space Models for Speech Separation},
   author={Jiang, Xilin and Han, Cong and Mesgarani, Nima},
   journal={arXiv preprint arXiv:2403.18257},
