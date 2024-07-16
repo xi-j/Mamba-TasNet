@@ -1,6 +1,6 @@
 # Mamba-TasNet and Dual-Path Mamba
 
-An official implementation of Mamba-TasNet [![arXiv](https://img.shields.io/badge/arXiv-<INDEX>-<COLOR>.svg)](https://arxiv.org/abs/<INDEX>) and dual-path Mamba [![arXiv](https://img.shields.io/badge/arXiv-2403.18257-<COLOR>.svg)](https://arxiv.org/abs/2403.18257) 
+An official implementation of Mamba-TasNet [![arXiv](https://img.shields.io/badge/arXiv-2407.09732-<COLOR>.svg)](https://arxiv.org/abs/2407.09732) and dual-path Mamba [![arXiv](https://img.shields.io/badge/arXiv-2403.18257-<COLOR>.svg)](https://arxiv.org/abs/2403.18257) 
 
 for speech separation.
 
@@ -48,6 +48,19 @@ We acknowledge the wonderful work of [Mamba](https://arxiv.org/abs/2312.00752) a
 ## Citation
 
 If you find this work helpful, please consider citing:
+
+```bibtex
+@article{jiang2024speechslytherin,
+      title={Speech Slytherin: Examining the Performance and Efficiency of Mamba for Speech Separation, Recognition, and Synthesis}, 
+      author={Xilin Jiang and Yinghao Aaron Li and Adrian Nicolas Florea and Cong Han and Nima Mesgarani},
+      year={2024},
+      eprint={2407.09732},
+      archivePrefix={arXiv},
+      primaryClass={eess.AS},
+      url={https://arxiv.org/abs/2407.09732}, 
+}
+```
+
 ```bibtex
 @article{jiang2024dual,
   title={Dual-path Mamba: Short and Long-term Bidirectional Selective Structured State Space Models for Speech Separation},
