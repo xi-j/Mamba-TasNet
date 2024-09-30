@@ -1,0 +1,205 @@
+# Generated 2024-05-28 from:
+# /home/xj2289/workspace/mamba-tasnet/hparams/WSJ0Mix/spmamba_M.yaml
+# yamllint disable
+# ################################
+# Model: Single-path SSM for source separation
+# Dataset : WSJ0-2mix and WSJ0-3mix
+# ################################
+#
+# Basic parameters
+# Seed needs to be set at top of yaml, before objects with parameters are made
+#
+seed: 1234
+__set_seed: !apply:torch.manual_seed [1234]
+
+eval_only: false
+
+# Data params
+
+# e.g. '/yourpath/wsj0-mix/2speakers'
+# end with 2speakers for wsj0-2mix or 3speakers for wsj0-3mix
+data_folder: /engram/naplab/projects/corpus/wsj0mix/2speakers
+
+# the path for wsj0/si_tr_s/ folder -- only needed if dynamic mixing is used
+# e.g. /yourpath/wsj0-processed/si_tr_s/
+# you need to convert the original wsj0 to 8k
+# you can do this conversion with the script ../meta/preprocess_dynamic_mixing.py
+base_folder_dm: /engram/naplab/projects/corpus/wsj0_processed/si_tr_s
+
+project: Mamba-TasNet
+experiment: FIXED_spmamba_M
+output_folder: results/WSJ0Mix/FIXED_spmamba_M/1234
+train_log: results/WSJ0Mix/FIXED_spmamba_M/1234/train_log.txt
+save_folder: results/WSJ0Mix/FIXED_spmamba_M/1234/save
+train_data: results/WSJ0Mix/FIXED_spmamba_M/1234/save/wsj_tr.csv
+valid_data: results/WSJ0Mix/FIXED_spmamba_M/1234/save/wsj_cv.csv
+test_data: results/WSJ0Mix/FIXED_spmamba_M/1234/save/wsj_tt.csv
+skip_prep: false
+
+
+# Experiment params
+precision: fp32 # bf16, fp16 or fp32 # Set it to True for mixed precision
+num_spks: 2 # set to 3 for wsj0-3mix
+noprogressbar: false
+save_audio: true # Save estimated sources on disk
+n_audio_to_save: 20
+sample_rate: 8000
+
+# Training parameters
+N_epochs: 200
+batch_size: 1
+lr: 1.5e-4
+weight_decay: 0
+clip_grad_norm: 5
+loss_upper_lim: 999999  # this is the upper limit for an acceptable loss
+# if True, the training sequences are cut to a specified length
+limit_training_signal_len: false
+# this is the length of sequences if we choose to limit
+# the signal length of training sequences
+training_signal_len: 32000000
+
+n_warmup_step: 20000
+
+# Set it to True to dynamically create mixtures at training time
+dynamic_mixing: true
+
+# Parameters for data augmentation
+use_wavedrop: false
+use_speedperturb: true
+use_rand_shift: false
+min_shift: -8000
+max_shift: 8000
+
+# Speed perturbation
+speed_changes: &id001 [95, 100, 105]
+
+# Frequency drop: randomly drops a number of frequency bands to zero.
+speed_perturb: !new:speechbrain.augment.time_domain.SpeedPerturb
+  orig_freq: 8000
+  speeds: *id001
+drop_freq_low: 0  # Min frequency band dropout probability
+drop_freq_high: 1  # Max frequency band dropout probability
+drop_freq_count_low: 1  # Min number of frequency bands to drop
+drop_freq_count_high: 3  # Max number of frequency bands to drop
+drop_freq_width: 0.05  # Width of frequency bands to drop
+
+drop_freq: !new:speechbrain.augment.time_domain.DropFreq
+  drop_freq_low: 0
+  drop_freq_high: 1
+  drop_freq_count_low: 1
+  drop_freq_count_high: 3
+  drop_freq_width: 0.05
+
+# Time drop: randomly drops a number of temporal chunks.
+drop_chunk_count_low: 1  # Min number of audio chunks to drop
+drop_chunk_count_high: 5  # Max number of audio chunks to drop
+drop_chunk_length_low: 1000  # Min length of audio chunks to drop
+drop_chunk_length_high: 2000  # Max length of audio chunks to drop
+
+drop_chunk: !new:speechbrain.augment.time_domain.DropChunk
+  drop_length_low: 1000
+  drop_length_high: 2000
+  drop_count_low: 1
+  drop_count_high: 5
+
+# loss thresholding -- this thresholds the training loss
+threshold_byloss: true
+threshold: -40
+
+# Encoder parameters
+N_encoder_out: 256
+out_channels: 256
+kernel_size: 16
+kernel_stride: 8
+
+# Mamba parameters
+bidirectional: true
+n_mamba: 32
+ssm_dim: 16
+mamba_expand: 2
+mamba_conv: 4
+
+# Dataloader options
+dataloader_opts:
+  batch_size: 1
+  num_workers: 16
+  drop_last: true
+
+fused_add_norm: false
+rms_norm: true
+use_simple_block: false
+residual_in_fp32: false
+
+# Specifying the network
+Encoder: &id002 !new:speechbrain.lobes.models.dual_path.Encoder
+  kernel_size: 16
+  out_channels: 256
+
+
+MaskNet: &id004 !new:modules.mamba_masknet.MaskNet
+
+  enc_dim: 256
+  bot_dim: 256
+  n_spk: 2
+  n_mamba: 32
+  bidirectional: true
+  d_model: 256
+  d_state: 16
+  expand: 2
+  d_conv: 4
+  fused_add_norm: false
+  rms_norm: true
+  use_simple_block: false
+  residual_in_fp32: false
+
+
+Decoder: &id003 !new:speechbrain.lobes.models.dual_path.Decoder
+  in_channels: 256
+  out_channels: 1
+  kernel_size: 16
+  stride: 8
+  bias: false
+
+optimizer: !name:torch.optim.Adam
+  lr: 1.5e-4
+  weight_decay: 0
+
+loss: !name:speechbrain.nnet.losses.get_si_snr_with_pitwrapper
+
+use_cosine_schedule: true
+percent_lr: 0.01
+
+lr_scheduler: &id006 !new:speechbrain.nnet.schedulers.ReduceLROnPlateau
+
+  factor: 0.5
+  patience: 2
+  dont_halve_until_epoch: 30
+
+epoch_counter: &id005 !new:speechbrain.utils.epoch_loop.EpochCounter
+  limit: 200
+
+modules:
+  encoder: *id002
+  decoder: *id003
+  masknet: *id004
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+  checkpoints_dir: results/WSJ0Mix/FIXED_spmamba_M/1234/save
+  recoverables:
+    encoder: *id002
+    decoder: *id003
+    masknet: *id004
+    counter: *id005
+    lr_scheduler: *id006
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+  save_file: results/WSJ0Mix/FIXED_spmamba_M/1234/train_log.txt
+
+use_wandb: true
+resume: false
+wandb_logger: !name:speechbrain.utils.train_logger.WandBLogger
+  initializer: !name:wandb.init
+  entity: xj-audio
+  project: Mamba-TasNet
+  name: FIXED_spmamba_M
+  dir: results/WSJ0Mix/FIXED_spmamba_M/1234/save
+  reinit: true
+  resume: false
