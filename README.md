@@ -37,6 +37,7 @@ Please check a related [issue](https://github.com/state-spaces/mamba/issues/6) a
 
 ## Inference and Checkpoints
 You can download checkpoints from [Google drive](https://drive.google.com/drive/folders/1gHJJ0laJs7eZuHaeBjNBA5llTI99EzmS?usp=sharing) and put them in the ckpt folder.
+
 See inference.ipynb for loading and running.
 
 ## Performance
