@@ -35,7 +35,9 @@ We recommend training with fp32 if GPU memory permits.
 
 Please check a related [issue](https://github.com/state-spaces/mamba/issues/6) and Section 6.4 in the Jamba [paper](https://arxiv.org/abs/2403.19887) on stabilizing loss.
 
-## Inference and Checkpoints (Later)
+## Inference and Checkpoints
+You can download checkpoints from [Google drive](https://drive.google.com/drive/folders/1gHJJ0laJs7eZuHaeBjNBA5llTI99EzmS?usp=sharing) and put them in the ckpt folder.
+See inference.ipynb for loading and running.
 
 ## Performance
 
